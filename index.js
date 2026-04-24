@@ -26,3 +26,4 @@ function prev(){
 function closeModal(){
     document.getElementById("modal").classList.remove("active");
 }
+img:"https://images.unsplash.com/photo-1510915228340-29c85a43dcfe?w=400"
