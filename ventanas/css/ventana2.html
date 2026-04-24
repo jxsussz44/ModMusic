@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MOD MUSIC MARKET</title>
+
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:sans-serif;}
+
+body{
+background:#111;
+color:white;
+}
+
+/* HEADER */
+header{
+display:flex;
+gap:10px;
+padding:15px;
+background:#1f1f1f;
+align-items:center;
+}
+
+.logo{
+color:#ef4444;
+font-weight:bold;
+}
+
+input{
+flex:1;
+padding:10px;
+border-radius:8px;
+border:none;
+}
+
+.cart-btn{
+cursor:pointer;
+}
+
+/* GRID */
+.products{
+display:grid;
+grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+gap:15px;
+padding:20px;
+}
+
+.card{
+background:#1f2937;
+padding:10px;
+border-radius:10px;
+transition:.3s;
+}
+
+.card:hover{transform:scale(1.03);}
+
+.card img{
+width:100%;
+height:150px;
+object-fit:cover;
+border-radius:10px;
+}
+
+/* BOTONES */
+button{
+margin-top:5px;
+width:100%;
+padding:8px;
+border:none;
+border-radius:8px;
+background:#ef4444;
+color:white;
+cursor:pointer;
+}
+
+/* CARRITO */
+.cart{
+position:fixed;
+right:-400px;
+top:0;
+width:350px;
+height:100%;
+background:#000;
+padding:15px;
+transition:.4s;
+overflow:auto;
+}
+
+.cart.active{right:0;}
+
+.cart-item{
+background:#1f2937;
+padding:10px;
+margin-bottom:10px;
+border-radius:8px;
+}
+
+.controls{
+display:flex;
+justify-content:space-between;
+}
+
+/* MODAL */
+.modal{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.9);
+display:none;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+}
+
+.modal.active{display:flex;}
+
+.modal img{
+width:60%;
+max-width:400px;
+border-radius:10px;
+}
+
+/* FAVORITOS */
+.fav{
+cursor:pointer;
+color:gray;
+}
+.fav.active{color:red;}
+</style>
+</head>
+
+<body>
+
+<header>
+<div class="logo">🛒 MOD MUSIC</div>
+<input id="search" placeholder="Buscar instrumentos...">
+<div class="cart-btn" onclick="toggleCart()">🛒 (<span id="count">0</span>)</div>
+</header>
+
+<section class="products" id="products"></section>
+
+<div class="cart" id="cart">
+<h2>Carrito</h2>
+<div id="cartItems"></div>
+<h3 id="total">Total: $0</h3>
+<button onclick="clearCart()">Vaciar carrito</button>
+</div>
+
+<div class="modal" id="modal">
+<img id="modalImg">
+<button onclick="closeModal()">Cerrar</button>
+</div>
+
+<script>
+const products = [
+{name:"Guitarra",price:500,img:"https://images.unsplash.com/photo-1510915228340-29c85a43dcfe?w=400"},
+{name:"Piano",price:900,img:"https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=400"},
+{name:"Batería",price:700,img:"https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=400"},
+{name:"Violín",price:400,img:"https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?w=400"},
+{name:"Saxofón",price:650,img:"https://images.unsplash.com/photo-1507838153414-b4b713384a76?w=400"},
+{name:"Bajo",price:550,img:"https://images.unsplash.com/photo-1507874457470-272b3c8d8ee2?w=400"}
+];
+
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let favs = [];
+
+const container = document.getElementById("products");
+
+/* RENDER PRODUCTOS */
+function render(list){
+container.innerHTML="";
+list.forEach((p,i)=>{
+container.innerHTML+=`
+<div class="card">
+<img src="${p.img}">
+<h3>${p.name}</h3>
+<p>$${p.price}</p>
+<div class="fav" onclick="fav(${i})">❤</div>
+<button onclick="add(${i})">Agregar</button>
+<button onclick="view('${p.img}')">Ver</button>
+</div>`;
+});
+}
+render(products);
+
+/* BUSCAR */
+search.oninput=e=>{
+const t=e.target.value.toLowerCase();
+render(products.filter(p=>p.name.toLowerCase().includes(t)));
+};
+
+/* CARRITO */
+function toggleCart(){
+cartDiv.classList.toggle("active");
+}
+
+const cartDiv=document.getElementById("cart");
+
+function add(i){
+let item=cart.find(p=>p.name===products[i].name);
+if(item){item.qty++}
+else{cart.push({...products[i],qty:1})}
+save();
+updateCart();
+}
+
+function updateCart(){
+const c=document.getElementById("cartItems");
+c.innerHTML="";
+let total=0,count=0;
+
+cart.forEach((p,i)=>{
+total+=p.price*p.qty;
+count+=p.qty;
+
+c.innerHTML+=`
+<div class="cart-item">
+${p.name} x ${p.qty}
+<div class="controls">
+<button onclick="change(${i},-1)">-</button>
+<button onclick="change(${i},1)">+</button>
+<button onclick="removeItem(${i})">x</button>
+</div>
+</div>`;
+});
+
+document.getElementById("total").innerText="Total: $"+total;
+document.getElementById("count").innerText=count;
+}
+
+function change(i,v){
+cart[i].qty+=v;
+if(cart[i].qty<=0) cart.splice(i,1);
+save();
+updateCart();
+}
+
+function removeItem(i){
+cart.splice(i,1);
+save();
+updateCart();
+}
+
+function clearCart(){
+cart=[];
+save();
+updateCart();
+}
+
+function save(){
+localStorage.setItem("cart",JSON.stringify(cart));
+}
+
+/* MODAL */
+function view(img){
+modal.classList.add("active");
+modalImg.src=img;
+}
+function closeModal(){
+modal.classList.remove("active");
+}
+
+/* FAVORITOS */
+function fav(i){
+alert("Agregado a favoritos (demo)");
+}
+
+updateCart();
+</script>
+
+</body>
+<div style="background:#111;color:white;padding:20px;font-family:sans-serif">
+
+<h1 style="color:#ef4444">🛒 MOD MUSIC MARKET</h1>
+
+<!-- BUSCADOR -->
+<input placeholder="🔍 Buscar instrumento..." style="width:100%;padding:10px;border-radius:10px;margin:10px 0;">
+
+<!-- PRODUCTOS -->
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:15px;">
+
+<div style="background:#1f2937;padding:10px;border-radius:10px;">
+<img src="https://images.unsplash.com/photo-1510915228340-29c85a43dcfe?w=300" style="width:100%;border-radius:10px;">
+<h3>Guitarra</h3>
+<p>$500</p>
+<button>Añadir</button>
+<button>Ver más</button>
+</div>
+
+<div style="background:#1f2937;padding:10px;border-radius:10px;">
+<img src="https://images.unsplash.com/photo-1513885535751-8b9238bd345a?w=300" style="width:100%;border-radius:10px;">
+<h3>Piano</h3>
+<p>$900</p>
+<button>Añadir</button>
+<button>Ver más</button>
+</div>
+
+<div style="background:#1f2937;padding:10px;border-radius:10px;">
+<img src="https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=300" style="width:100%;border-radius:10px;">
+<h3>Batería</h3>
+<p>$700</p>
+<button>Añadir</button>
+<button>Ver más</button>
+</div>
+
+</div>
+
+<!-- CARRITO VISUAL -->
+<h2 style="margin-top:20px">🛒 Tu carrito</h2>
+
+<div style="background:#1f2937;padding:10px;border-radius:10px;">
+<p>Guitarra x1</p>
+<p>Piano x1</p>
+<h3>Total: $1400</h3>
+<button>Finalizar compra</button>
+</div>
+
+</div>
+</html>
